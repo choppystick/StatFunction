@@ -68,3 +68,29 @@ mdet <- function(mat){
   I1 <- z1>1e-12
   return(exp(sum(log(z1[I1]))))
 }
+
+#takes a matrix x as input and creates a new matrix x0 that includes all the second-order interaction terms (i.e., products of pairs of variables) of the columns of x.
+#only.squared: function only create squared interaction terms if True 
+matrix.2nd.order <- function(x, only.squared=F){
+  x0 <- x
+  dimn <- dimnames(x)[[2]] 
+  num.col <- length(x[1,]) 
+
+  for(i in 1:num.col){
+    if(!only.squared){
+      for(j in i:num.col){
+        x0 <- cbind(x0, x[,i]*x[,j])
+        dimn <- c(dimn, paste(dimn[i], dimn[j], sep=""))
+      }
+    }
+    
+    else{
+      x0 <- cbind(x0, x[,i]*x[,i])
+      dimn <- c(dimn, paste(dimn[i], "2", sep=""))
+      }
+  }
+  
+  dimnames(x0)[[2]] <- dimn
+  
+  return(x0)
+}
