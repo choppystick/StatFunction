@@ -40,22 +40,21 @@ gen.inv <- function(mat, thresh = 1e-10){
   I3 <- is.na(I1)
 
   if(sum(I3) < 0.5) {
-  val2 <- val[I1]
-  I2 <- I1
+    val2 <- val[I1]
+    I2 <- I1
 
-  if(sum(I2) > 1.5) {
-  ret <- vec[, I1] %*% diag(1/val2) %*% t(vec[, I1])
+    if(sum(I2) > 1.5) {
+      ret <- vec[, I1] %*% diag(1/val2) %*% t(vec[, I1])
+    }
+
+    else {
+      v1 <- as.matrix(vec[, I1], length(c(vec[, I1])), 1)
+      ret <- (1/val2) * v1 %*% t(v1)
+    }
   }
 
   else {
-  v1 <- as.matrix(vec[, I1], length(c(vec[, I1])), 1)
-  ret <- (1/val2) * v1 %*% t(v1)
-  }
-
-  }
-
-  else {
-  ret <- diag(length(I1)) * 0
+    ret <- diag(length(I1)) * 0
   }
 
   return(ret)
