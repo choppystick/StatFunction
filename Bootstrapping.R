@@ -50,7 +50,7 @@ bootstrap.ch <- function(mat.train, y, xstring="leaps", brep=10){
   if(xstring=="leaps"){
     library(leaps)
     func0 <- leaps
-    reduce.function <- my.cp.extract.leaps2
+    reduce.function <- leaps.cp
   }
   
   ypredmat <- NULL
