@@ -143,7 +143,7 @@ Hotellings.twosample <- function(dat0, idcol, mu00){
 #dat0: data matrix
 #idcol: group identificator column
 #mu0: hypothesized difference in mean
-Hotellings.twosample.perm.test <- function(dat0, idcol, mu0=0, nperm=10000){
+Hotellings.twosample.perm <- function(dat0, idcol, mu0=0, nperm=10000){
   dum <- Hotellings.twosample(dat0, idcol, mu0)
   H1 <- dum$H1
   mat0 <- convert.data(dat0, idcol)
