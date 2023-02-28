@@ -97,4 +97,4 @@ matrix.2nd.order <- function(x, only.squared=F){
 #takes a matrix mat and returns the trace
 trace <-function(mat){
   sum(diag(mat))
-  }
+}
