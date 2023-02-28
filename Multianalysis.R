@@ -265,3 +265,125 @@ Bootstrap.twosample.simconf <- function(zdata,idcol,conmat,mu00=0,nboot=10000,al
 
     list(bootconf=muconf, Hotelling=Hconf)
   }
+
+#computes a 1-way MANOVA for a mat dat0 with identicators column idol.
+#function iterates over each group and calculates the mean for each dependent variable. Then uses these means to calculate the sum of squares within groups (SSW)
+#and the group mean deviations from the overall mean to calculate the sum of squares between groups (SSB).
+#Finally, the function calculates the total sum of squares (SST) and Wilks' lambda statistic (lambda).
+
+Manova.1way <- function(dat0,idcol){
+  mat0 <- convert.data(dat0, idcol)
+  id1 <- mat0[,idcol]
+  ud1 <- unique(id1)
+
+  #mean calculation and SS calculation
+  mean.mat <- NULL
+  nvec <- NULL
+  SSW <- 0
+
+  for(i in seq_along(ud1)){
+      I1 <- (id1==ud1[i])
+      m0 <- mat0[I1, -idcol]
+      mu0 <- apply(m0, 2, mean)
+
+      musubt <- function(vec){ vec-mu0 }
+
+      m1 <- apply(m0, 1, musubt)
+      SSW <- SSW+m1%*%t(m1)
+      mean.mat <- rbind(mean.mat, mu0)
+      nvec <- c(nvec, length(m1[1,]))
+  }
+
+  mutot <- (nvec%*%mean.mat)/sum(nvec)
+  musubt <- function(vec){vec-mutot}
+
+  b0 <- apply(mean.mat,1,musubt)
+  #print(dim(b0))
+  #print(length(nvec))
+
+  for(i in seq_along(nvec)){
+      b0[,i] <- b0[,i]*sqrt(nvec[i])
+  }
+
+  SSB <- b0%*%t(b0)
+  T0 <- apply(mat0[,-idcol], 1, musubt)
+  SST <- (T0)%*%t(T0)
+
+  list(lambda=mdet(SSW)/mdet(SSW+SSB), SSW=SSW, SSB=SSB, SST=SST, mumat=mean.mat)
+}
+
+#Extension of Manova.1way. Performs a permutation test to obtain a p-value for an observed Wilk's ambda statistic.
+Manova.1way.perm <- function(mat, idcol, nperm=10000){
+  dum <- Manova.1way(mat, idcol)
+  lambda0 <- dum$lambda
+  m1 <- mat[,-idcol]
+  idvec <- mat[,idcol]
+  n1 <- length(m1[,1])
+  lambdavec <- NULL
+  for(i in 1:nperm){
+      nsamp <- sample(n1)
+      mp <- m1[nsamp,]
+      matp <- cbind(idvec,mp)
+      lambdavec <- c(lambdavec, Manova.1way(matp, 1)$lambda)
+  }
+  pval <- sum(lambdavec<lambda0)/nperm
+  dum$p <- pval
+  #dum$lambdavec<-lambdavec
+  return(dum)
+}
+
+#function takes in a dataframe and converts the data into a matrix and the identificator columns into integers.
+#Used for cleaning up the categorical grouping columns into numerical grouping columns
+convert.data <- function(dat, idcol){
+  n1 <- length(idcol)
+  #print(idcol)
+  dat00 <- as.matrix(dat[,-idcol])
+  n0 <- length(dat[,1])
+  n2 <- length(dat[1,])
+  dat0 <- matrix(rep(0,n0*n2),n0,n2)
+  zmatnumid <- 1:n2[-idcol]
+  dat0[,zmatnumid] <- dat00
+
+  for(i in 1:n1){
+      idv <- dat[,idcol[i]]
+      un1 <- unique(idv)
+      n2 <- length(un1)
+      vec0 <- rep(0, length(idv))
+      for(j in 1:n2){
+          Id0 <- (idv==un1[j])
+          vec0[Id0] <- j
+      }
+      dat0[,idcol[i]] <- vec0
+      }
+
+  return(dat0)
+}
+
+#Performs multiway MANOVA. It is assumed that there are no more than 9 levels for any factor. 
+#It is also assumed this is higher than 2 way and every cell has more than 1 observation.
+#rid = response id column. To remove any response variable.
+Manova.multiway <- function(dat0, idcol, rid=0){
+    if(abs(rid[1])>.2){
+      mat0 <- convert.data(dat0, c(idcol, rid))
+    }
+    else{
+      mat0 <- convert.data(dat0, idcol)
+    }
+  
+    nway <- length(idcol)
+    idvec0 <- 0
+  
+    for(i in 1:nway){
+      idvec0 <- idvec0+mat0[,idcol[i]]*10^(i-1)
+    }
+  
+    mat1 <- cbind(idvec0,mat0[,-c(idcol,rid)])
+    dum1 <- Manova.1way(mat1, 1)
+    SSE <- dum1$SSW
+    SSB <- dum1$SSB
+    SST <- dum1$SST
+    mean.mat <- dum1$mumat
+    residmat <- dum1$resid
+  
+    list(lambda=mdet(SSE)/(mdet(SSE+SSB)), SSE=dum1$SSW, SSB=dum1$SSB, SST=dum1$SST, mean.mat=mean.mat, mumatA=dum1$mumatA, residmat=residmat)
+}
