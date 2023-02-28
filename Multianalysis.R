@@ -123,13 +123,13 @@ Hotellings.twosample <- function(dat0, idcol, mu00){
   
   mudiff <- mean.mat[1,] - mean.mat[2,]
   S <- SSW[[1]]/(nvec[1]^2) + SSW[[2]]/(nvec[2]^2)
-  H <- t(mudiff - mu00)%*%gen.inv1(S)%*%(mudiff - mu00)
+  H <- t(mudiff - mu00)%*%gen.inv(S)%*%(mudiff - mu00)
   p <- length(mudiff)
   denom <- 0
   
   #performs the Welch's correction
   for(i in 1:2){
-    denom < -denom+(1/nvec[i])*tr(((SSW[[i]]/(nvec[i]^2))%*%gen.inv1(S))^2)
+    denom < -denom+(1/nvec[i])*tr(((SSW[[i]]/(nvec[i]^2))%*%gen.inv(S))^2)
   }
   
   nu <- (p*(p+1))/denom
@@ -195,14 +195,14 @@ Hotellings.twosample.conf <- function(dat0, idcol, conmat, alpha=.05, mu00=0){
 
   mudiff <- mean.mat[1,] - mean.mat[2,]
   S <- SSW[[1]]/(nvec[1]^2) + SSW[[2]]/(nvec[2]^2)
-  H <- t(mudiff-mu00)%*%gen.inv1(S)%*%(mudiff-mu00)
+  H <- t(mudiff-mu00)%*%gen.inv(S)%*%(mudiff-mu00)
   vv <- diag(conmat%*%S%*%conmat)
   p <- length(mudiff)
   denom <- 0
 
   #Welch's correction
   for(i in 1:2){
-    denom <- denom+(1/nvec[i])*tr(((SSW[[i]]/(nvec[i]^2))%*%gen.inv1(S))^2)
+    denom <- denom+(1/nvec[i])*tr(((SSW[[i]]/(nvec[i]^2))%*%gen.inv(S))^2)
   }
 
   nu <- (p*(p+1))/denom
@@ -247,7 +247,7 @@ Bootstrap.twosample.simconf <- function(zdata,idcol,conmat,mu00=0,nboot=10000,al
   
     cv1 <- cov(mmumat)
     z1 <- NULL
-    cv2 <- gen.inv1(cv1)
+    cv2 <- gen.inv(cv1)
   
     for(i in 1:nboot){
       z1 <- c(z1,t(mmumat[i,])%*%cv2%*%(mmumat[i,]))
