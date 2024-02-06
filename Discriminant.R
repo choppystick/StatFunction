@@ -40,7 +40,7 @@ cont.table <- function(m1) {
 # Output:
 #   - mat.out: Transformed data matrix representing the discriminant space.
 #   - llambda: Log-likelihood ratio statistic.
-isher.disc.space <- function(dat0, idcol, num.vec, do.plot = TRUE) {
+Fisher.disc.space <- function(dat0, idcol, num.vec, do.plot = TRUE) {
     mat0 <- convert.data(dat0, idcol)  # Convert data matrix with class labels to appropriate format
     id1 <- mat0[, idcol]  # Extract class labels
     ud1 <- unique(id1)  # Unique class labels
