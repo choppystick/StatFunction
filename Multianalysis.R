@@ -266,6 +266,95 @@ Bootstrap.twosample.simconf <- function(zdata,idcol,conmat,mu00=0,nboot=10000,al
     list(bootconf=muconf, Hotelling=Hconf)
   }
 
+# This function creates a graphical user interface (GUI) for selecting parameters
+# It prompts the user to input parameters for the eigenvalue.inference function
+# After user input, it runs the eigenvalue.inference function with the selected parameters
+#
+gui.princomp <- function() {
+    library(tcltk)
+    
+    # Function to create GUI inputs
+    inputs <- function() {
+        # Initialize variables for GUI inputs
+        x <- tclVar("T620")
+        y <- tclVar(".05")
+        z <- tclVar("F")
+        w <- tclVar("10000")
+        
+        # Create a new GUI window
+        tt <- tktoplevel()
+        tkwm.title(tt, "Choose parameters for new function")
+        
+        # Entry widgets for input fields
+        x.entry <- tkentry(tt, textvariable = x)
+        y.entry <- tkentry(tt, textvariable = y)
+        z.entry <- tkentry(tt, textvariable = z)
+        w.entry <- tkentry(tt, textvariable = w)
+        
+        # Function to reset input values
+        reset <- function() {
+            tclvalue(x) <- ""
+            tclvalue(y) <- ""
+            tclvalue(z) <- ""
+            tclvalue(w) <- ""
+        }
+        
+        # Button to reset input values
+        reset.but <- tkbutton(tt, text = "Reset", command = reset)
+        
+        # Function to submit input values
+        submit <- function() {
+            x <- tclvalue(x)
+            y <- tclvalue(y)
+            z <- tclvalue(z)
+            w <- tclvalue(w)
+            e <- parent.env(environment())
+            e$x <- x
+            e$y <- y
+            e$z <- z
+            e$w <- w
+            tkdestroy(tt)
+        }
+        
+        # Button to submit input values
+        submit.but <- tkbutton(tt, text = "Start", command = submit)
+        
+        # Grid layout for widgets
+        tkgrid(tklabel(tt, text = "Input data matrix"), columnspan = 2)
+        tkgrid(tklabel(tt, text = "Data"), x.entry, pady = 10, padx = 30)
+        tkgrid(tklabel(tt, text = "Alpha"), columnspan = 2)
+        tkgrid(tklabel(tt, text = "Alpha"), y.entry, pady = 10, padx = 30)
+        tkgrid(tklabel(tt, text = "Scale cov?"), columnspan = 2)
+        tkgrid(tklabel(tt, text = "F"), z.entry, pady = 10, padx = 30)
+        tkgrid(tklabel(tt, text = "Nboot"), columnspan = 2)
+        tkgrid(tklabel(tt, text = "10000"), w.entry, pady = 10, padx = 30)
+        
+        # Grid layout for buttons
+        tkgrid(submit.but, reset.but)
+
+        # Wait for user interaction
+        tkwait.window(tt)
+        
+        # Return selected parameters
+        return(c(x, y, z, w))
+    }
+    
+    # Now run the function to get inputs
+    predictor_para <- inputs()
+    
+    # Print selected parameters
+    print(predictor_para)
+    
+    # Extract selected parameters
+    mat <- eval(parse(text = predictor_para[1]))
+    alpha <- eval(parse(text = predictor_para[2]))
+    xscale <- eval(parse(text = predictor_para[3]))
+    nboot <- eval(parse(text = predictor_para[4]))
+    
+    # Run eigenvalue.inference function with selected parameters
+    eigenvalue.inference(mat, alpha, xscale, nboot)
+}
+
 
 
 
