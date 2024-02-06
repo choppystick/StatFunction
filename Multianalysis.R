@@ -388,6 +388,11 @@ Manova.multiway <- function(dat0, idcol, rid=0){
     list(lambda=mdet(SSE)/(mdet(SSE+SSB)), SSE=dum1$SSW, SSB=dum1$SSB, SST=dum1$SST, mean.mat=mean.mat, mumatA=dum1$mumatA, residmat=residmat)
 }
 
+#Performs a general Multiway MANOVA analysis while also considering the interaction terms between each factors. Returns Wilk's lambda as test statistics.
+#Input:
+#dat0 = input matrix
+#idcol = grouping vaariable identifiers
+#int.str = list of integers specifying which columns will be taken as interaction terms
 Manova.multiway.portmanteau <- function(dat0, idcol, int.str) {
     n1 <- length(int.str)
     out.str <- rep(list(), (n1 + 1))
@@ -443,6 +448,12 @@ Manova.multiway.portmanteau <- function(dat0, idcol, int.str) {
     return(out)
 }
 
+#Perform multiway permutation tests for multiway MANOVA analysis to assess the significance of the lambda values. Permutation is done through resuffling the data matrix and 
+#recalculating the lambda values.
+#Input:
+#mat = data matrix
+#idcol = integer specifying the grouping variable column
+#nperm = number of permutation to be performed, by default 10,000
 Manova.multiway.perm <- function(mat, idcol, nperm = 10000) {
     # function(dat0, idcol, int.str)
     # NOTE IDCOL SHOULD BE IN ORDER THEY APPEAR IN MATRIX
@@ -485,3 +496,152 @@ Manova.multiway.perm <- function(mat, idcol, nperm = 10000) {
     dum$cp <- cpvec
     dum
 }
+
+Manova <- function(dat0, idcol, int.str) {
+    n1 <- length(int.str)
+    out.str <- rep(list(), (n1 + 1))
+    SSElist <- rep(list(), (n1 + 1))
+    SSBlist <- rep(list(), (n1 + 1))
+    SSTlist <- rep(list(), (n1 + 1))
+    mulist <- rep(list(), (n1 + 1))
+    muAlist <- rep(list(), (n1 + 1))
+    residlist <- rep(list(), (n1 + 1))
+    lambdavec <- NULL
+    clambdavec <- NULL
+    
+    # SSE and full interaction
+    dum1 <- Manova.multiway(dat0, idcol)
+    out.str[[1]] <- dum1
+    lambdavec <- NULL
+    SSElist[[1]] <- dum1$SSE
+    SSBlist[[1]] <- dum1$SSB
+    SSTlist[[1]] <- dum1$SST
+    mulist[[1]] <- dum1$mean.mat
+    residlist[[1]] <- dum1$residmat
+    muAlist[[1]] <- dum1$mumatA
+    SSBtot1 <- 0
+    SSBtot2 <- 0
+    SSBtot3 <- 0
+    dat00 <- convert.data(dat0, idcol)
+    
+    # the assumption is that the interactions in int.str go from lowest to highest
+    # So all previous SSB must be subtracted from SST
+    for (j in 1:n1) {
+        idcoltemp <- idcol[int.str[[j]]]
+        throw.away <- (idcol[-int.str[[j]]])
+        dum2 <- Manova.multiway(dat00, idcoltemp, rid = throw.away)
+        if (length(int.str[[j]]) == 1) {
+            lambdavec <- c(lambdavec, mdet(dum1$SSE) / mdet(dum1$SSE + dum2$SSB))
+            clambdavec <- c(clambdavec, det(dum1$SSE) / det(dum1$SSE + dum2$SSB))
+            out.str[[(j + 1)]] <- list(int = int.str[[j]], raw = dum2)
+            SSElist[[(j + 1)]] <- (dum2$SSE)
+            SSBlist[[(j + 1)]] <- (dum2$SSB)
+            SSTlist[[(j + 1)]] <- dum2$SST
+            SSBtot1 <- SSBtot1 + dum2$SSB
+            mulist[[(j + 1)]] <- dum2$mean.mat
+            residlist[[(j + 1)]] <- dum2$residmat
+            muAlist[[(j + 1)]] <- dum2$mumatA
+        } else {
+            if (length(int.str[[j]]) == 2) {
+                vec0 <- int.str[[j]]
+                jvec <- vec0 + 1
+                SSB <- dum2$SST - SSBlist[[jvec[1]]] - SSBlist[[jvec[2]]] - dum2$SSE
+                lambdavec <- c(lambdavec, mdet(dum1$SSE) / mdet(dum1$SSE + SSB))
+                clambdavec <- c(clambdavec, det(dum1$SSE) / det(dum1$SSE + SSB))
+                out.str[[(j + 1)]] <- list(int = int.str[[j]], raw = dum2)
+                SSElist[[(j + 1)]] <- (dum2$SSE)
+                SSBlist[[(j + 1)]] <- SSB
+                SSTlist[[(j + 1)]] <- dum2$SST
+                SSBtot2 <- SSBtot2 + SSB
+                mulist[[(j + 1)]] <- dum2$mean.mat
+                residlist[[(j + 1)]] <- dum2$residmat
+                muAlist[[(j + 1)]] <- dum2$mumatA
+            } else {
+                if (length(int.str[[j]]) == 3) {
+                    jvec <- int.str[[j]] + 1 + length(idcol) * (length(idcol) - 1) / 2
+                    SSB <- dum2$SST - dum2$SSE
+                    for (k in 1:3) {
+                        SSB <- SSB - SSBlist[[jvec[k]]]
+                    }
+                    lambdavec <- c(lambdavec, mdet(dum1$SSE) / mdet(dum1$SSE + SSB))
+                    clambdavec <- c(clambdavec, det(dum1$SSE) / det(dum1$SSE + SSB))
+                    out.str[[(j + 1)]] <- list(int = int.str[[j]], raw = dum2)
+                    SSElist[[(j + 1)]] <- (dum2$SSE)
+                    SSBlist[[(j + 1)]] <- SSB
+                    SSTlist[[(j + 1)]] <- dum2$SST
+                    SSBtot3 <- SSBtot3 + SSB
+                    mulist[[(j + 1)]] <- dum2$mean.mat
+                    residlist[[(j + 1)]] <- dum2$residmat
+                    muAlist[[(j + 1)]] <- dum2$mumatA
+                }
+            }
+        }
+    }
+    
+    SSBtottot <- SSBtot1 + SSBtot2 + SSBtot3
+    lambda.int <- mdet(dum1$SSE) / mdet(dum1$SST - SSBtottot)
+    clambda.int <- det(dum1$SSE) / det(dum1$SST - SSBtottot)
+    out <- list(Lambda = c(lambdavec, lambda.int),
+                cLambda = c(clambdavec, clambda.int),
+                outinf = out.str,
+                SSE = SSElist,
+                SSB = SSBlist,
+                SST = SSTlist,
+                mulist = mulist,
+                muAlist = muAlist,
+                residlist = residlist)
+    out
+}
+
+Manova.perm <- function(mat, idcol, int.str, nperm = 10000) {
+    # function(dat0, idcol, int.str)
+    # NOTE IDCOL SHOULD BE IN ORDER THEY APPEAR IN MATRIX
+    dum <- Manova.calculation.multiway.test(mat, idcol, int.str)
+    lambda0 <- dum$Lambda
+    clambda0 <- dum$cLambda
+    m1 <- mat[, -idcol]
+    idvec <- mat[, idcol]
+    n0 <- length(idvec[1,])
+    n1 <- length(m1[, 1])
+    lambdamat <- NULL
+    clambdamat <- NULL
+    
+    print(lambda0)
+    print(clambda0)
+    
+    for (i in 1:nperm) {
+        nsamp <- sample(n1)
+        mp <- m1[nsamp, ]
+        matp <- cbind(idvec, mp)
+        dumP <- Manova.calculation.multiway.test(matp, c(1:n0), int.str)
+        lambdamat <- rbind(lambdamat, dumP$Lambda)
+        clambdamat <- rbind(clambdamat, dumP$cLambda)
+        if ((i / 500) == floor(i / 500)) {
+            print(c(i))
+        }
+    }
+    
+    lambcomp <- function(vec) {
+        1 * (vec < lambda0)
+    }
+    
+    dumcomp <- t(apply(lambdamat, 1, lambcomp))
+    pvec <- apply(dumcomp, 2, sum) / nperm
+    
+    clambcomp <- function(vec) {
+        1 * (vec < clambda0)
+    }
+    
+    cdumcomp <- t(apply(clambdamat, 1, clambcomp))
+    cpvec <- apply(cdumcomp, 2, sum) / nperm
+    
+    dum$p <- pvec
+    dum$cp <- cpvec
+    
+    return(dum)
+}
+
+
+
+
+
