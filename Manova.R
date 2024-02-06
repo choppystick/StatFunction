@@ -218,6 +218,7 @@ Manova.multiway.perm <- function(mat, idcol, nperm = 10000) {
     dum
 }
 
+#Perform a full MANOVA with minimal dependencies with other functions.
 Manova <- function(dat0, idcol, int.str) {
     n1 <- length(int.str)
     out.str <- rep(list(), (n1 + 1))
@@ -314,6 +315,7 @@ Manova <- function(dat0, idcol, int.str) {
     out
 }
 
+#Perform permutation tests with the function Manova.
 Manova.perm <- function(mat, idcol, int.str, nperm = 10000) {
     # function(dat0, idcol, int.str)
     # NOTE IDCOL SHOULD BE IN ORDER THEY APPEAR IN MATRIX
