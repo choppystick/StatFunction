@@ -266,10 +266,91 @@ Bootstrap.twosample.simconf <- function(zdata,idcol,conmat,mu00=0,nboot=10000,al
     list(bootconf=muconf, Hotelling=Hconf)
   }
 
-# This function creates a graphical user interface (GUI) for selecting parameters
+# Function to perform inference on eigenvalues based on bootstrap samples.
+# Input:
+#   - dat: Data matrix to be analyzed.
+#   - alpha: Significance level for the hypothesis tests. Default is 0.05.
+#   - scaled: Boolean indicating whether to scale the covariance matrix. Default is FALSE.
+#   - nboot: Number of bootstrap samples to generate. Default is 10000.
+# Output:
+#   - eigen: Eigenvalues and eigenvectors of the covariance or correlation matrix.
+#   - test.notunique: Test statistic for the uniqueness of eigenvalues.
+#   - bootstrap.val: Bootstrap values for the eigenvalues.
+#   - normal.val: Normal approximation values for the eigenvalues.
+#   - proportion.var: Proportion of variance explained by each eigenvalue.
+#   - vec.cov: List of covariance matrices for each eigenvector.
+eigenvalue.inference <- function(dat, alpha = 0.05, scaled = FALSE, nboot = 10000) {
+    v1 <- var(dat)
+    n1 <- length(dat[, 1])
+    if (scaled) {
+        v1 <- cor(dat)
+    }
+    e1 <- eigen(v1)
+    p1 <- length(e1$val)
+    val0 <- e1$val
+    vec0 <- e1$vec
+    alpha0 <- alpha / 2
+    alphabon <- alpha0 / p1
+    z1 <- qnorm(alpha0)
+    zbon <- qnorm(alphabon)
+    denL1 <- 1 - z1 * sqrt(2 / n1)
+    denLbon1 <- 1 - zbon * sqrt(2 / n1)
+    denL2 <- 1 + z1 * sqrt(2 / n1)
+    denLbon2 <- 1 + zbon * sqrt(2 / n1)
+    bootmat <- NULL
+    bootmatd <- NULL
+    for (i in 1:nboot) {
+        if ((i / 500) == floor(i / 500)) {
+            print(i)
+        }
+        vbn <- sample(n1, replace = TRUE)
+        bdat <- dat[vbn, ]
+        vb1 <- var(bdat)
+        if (scaled) {
+            vb1 <- cor(bdat)
+        }
+        eb1 <- eigen(vb1)
+        valb <- eb1$val
+        bootmat <- cbind(bootmat, val0 / valb)
+        bootmatd <- cbind(bootmatd, diff(valb))
+    }
+    my.quantile <- function(x) {
+        quantile(x, c(alphabon, alpha0, 1 - alpha0, 1 - alphabon))
+    }
+    vz <- apply(bootmat, 1, my.quantile)
+    vsd <- sqrt((2 / n1) * (val0[-1]^2 + val0[-p1]^2))
+    vt <- diff(val0) / vsd
+    Bootstrap <- t(vz) * val0
+    Normal <- cbind(val0 / denLbon1, val0 / denL1, val0, val0 / denL2, val0 / denLbon2)
+    vec.mat.list <- list()
+    for (i in 1:p1) {
+        lambda0 <- val0[i]
+        E0 <- 0
+        for (j in 1:p1) {
+            if (j != i) {
+                E0 <- E0 + (lambda0 * val0[j] / (sqrt(n1) * ((lambda0 - val0[j])^2))) * vec0 %*% t(vec0)
+            }
+        }
+        vec.mat.list[[i]] <- E0
+    }
+    list(eigen = e1, test.notunique = pt(vt, n1 - 1), bootstrap.val = Bootstrap, normal.val = Normal, proportion.var = rbind(val0, cumsum(val0) / sum(val0)), vec.cov = vec.mat.list)
+}
+
+# This function creates a graphical user interface (GUI) for Principal Component Analysis (PCA)
 # It prompts the user to input parameters for the eigenvalue.inference function
 # After user input, it runs the eigenvalue.inference function with the selected parameters
-#
+# Input:
+#   - Data Matrix: The matrix to be analyzed.
+#   - Alpha: The significance level for the hypothesis tests.
+#   - Scale Covariance: A boolean indicating whether to scale the covariance matrix.
+#   - Number of Bootstrap Samples (Nboot): The number of bootstrap samples to generate.
+# Output:
+#   - eigen: Eigenvalues and eigenvectors of the covariance or correlation matrix.
+#   - test.notunique: Test statistic for the uniqueness of eigenvalues.
+#   - bootstrap.val: Bootstrap values for the eigenvalues.
+#   - normal.val: Normal approximation values for the eigenvalues.
+#   - proportion.var: Proportion of variance explained by each eigenvalue.
+#   - vec.cov: List of covariance matrices for each eigenvector.
 gui.princomp <- function() {
     library(tcltk)
     
