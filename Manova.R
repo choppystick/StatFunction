@@ -1,8 +1,51 @@
-#computes a 1-way MANOVA for a mat dat0 with identicators column idol.
-#function iterates over each group and calculates the mean for each dependent variable. Then uses these means to calculate the sum of squares within groups (SSW)
-#and the group mean deviations from the overall mean to calculate the sum of squares between groups (SSB).
-#Finally, the function calculates the total sum of squares (SST) and Wilks' lambda statistic (lambda).
+# Converts a dataframe into a matrix and converts converts the categorical grouping columns into numerical grouping columns 
+# by assigning integers to each category.
+# 
+# Input:
+#   - dat: Input dataframe.
+#   - idcol: Column indices of the group identifiers.
+# 
+# Output:
+#   - A matrix with the data converted into numerical format and identifier columns converted to integers.
+convert.data <- function(dat, idcol){
+  n1 <- length(idcol)
+  #print(idcol)
+  dat00 <- as.matrix(dat[,-idcol])
+  n0 <- length(dat[,1])
+  n2 <- length(dat[1,])
+  dat0 <- matrix(rep(0,n0*n2),n0,n2)
+  zmatnumid <- 1:n2[-idcol]
+  dat0[,zmatnumid] <- dat00
 
+  for(i in 1:n1){
+      idv <- dat[,idcol[i]]
+      un1 <- unique(idv)
+      n2 <- length(un1)
+      vec0 <- rep(0, length(idv))
+      for(j in 1:n2){
+          Id0 <- (idv==un1[j])
+          vec0[Id0] <- j
+      }
+      dat0[,idcol[i]] <- vec0
+      }
+
+  return(dat0)
+}
+
+# Performs one-way MANOVA (Multivariate Analysis of Variance) on the input data.
+# calculates the Wilk's lambda statistic for one-way MANOVA.
+#
+# Input:
+#   - dat0: Input data matrix.
+#   - idcol: Column indices of the group identifiers.
+# 
+# Output:
+#   - A list containing:
+#     - lambda: Wilk's lambda statistic.
+#     - SSW: Within-group sum of squares.
+#     - SSB: Between-group sum of squares.
+#     - SST: Total sum of squares.
+#     - mumat: Estimated means of the groups.
 Manova.1way <- function(dat0,idcol){
   mat0 <- convert.data(dat0, idcol)
   id1 <- mat0[,idcol]
@@ -44,7 +87,24 @@ Manova.1way <- function(dat0,idcol){
   list(lambda=mdet(SSW)/mdet(SSW+SSB), SSW=SSW, SSB=SSB, SST=SST, mumat=mean.mat)
 }
 
-#Extension of Manova.1way. Performs a permutation test to obtain a p-value for an observed Wilk's ambda statistic.
+# Performs permutation tests on one-way MANOVA results.
+# 
+# Input:
+#   - mat: Input data matrix.
+#   - idcol: Column indices of the group identifiers.
+#   - nperm: Number of permutations for the permutation test (default is 10000).
+# 
+# Output:
+#   - A list containing the results of the permutation test.
+#     - Lambda: Vector of lambda statistics computed for each permutation, including the observed value.
+#     - cLambda: Vector of cLambda statistics computed for each permutation, including the observed value.
+#     - outinf: List of multi-way MANOVA results for each permutation, including SSE, SSB, SST, mean, and residuals.
+#     - SSE: List of SSE (Sum of Squares Error) for each permutation.
+#     - SSB: List of SSB (Sum of Squares Between) for each permutation.
+#     - SST: List of SST (Total Sum of Squares) for each permutation.
+#     - mu: List of mean matrices for each permutation.
+#     - muAlist: List of matrices containing group mean differences for each permutation.
+#     - resid: List of matrices containing residuals for each permutation.
 Manova.1way.perm <- function(mat, idcol, nperm=10000){
   dum <- Manova.1way(mat, idcol)
   lambda0 <- dum$lambda
@@ -64,36 +124,22 @@ Manova.1way.perm <- function(mat, idcol, nperm=10000){
   return(dum)
 }
 
-#function takes in a dataframe and converts the data into a matrix and the identificator columns into integers.
-#Used for cleaning up the categorical grouping columns into numerical grouping columns
-convert.data <- function(dat, idcol){
-  n1 <- length(idcol)
-  #print(idcol)
-  dat00 <- as.matrix(dat[,-idcol])
-  n0 <- length(dat[,1])
-  n2 <- length(dat[1,])
-  dat0 <- matrix(rep(0,n0*n2),n0,n2)
-  zmatnumid <- 1:n2[-idcol]
-  dat0[,zmatnumid] <- dat00
-
-  for(i in 1:n1){
-      idv <- dat[,idcol[i]]
-      un1 <- unique(idv)
-      n2 <- length(un1)
-      vec0 <- rep(0, length(idv))
-      for(j in 1:n2){
-          Id0 <- (idv==un1[j])
-          vec0[Id0] <- j
-      }
-      dat0[,idcol[i]] <- vec0
-      }
-
-  return(dat0)
-}
-
-#Performs multiway MANOVA. It is assumed that there are no more than 9 levels for any factor. 
-#It is also assumed this is higher than 2 way and every cell has more than 1 observation.
-#rid = response id column. To remove any response variable.
+# Performs multi-way MANOVA analysis.
+# 
+# Input:
+#   - dat0: Input data matrix.
+#   - idcol: Column indices of the group identifiers.
+#   - rid: Column indices of additional variables to be removed. Default is 0.
+# 
+# Output:
+#   - A list containing the multi-way MANOVA results and their statistics.
+#     - lambda: Lambda statistic.
+#     - SSE: Sum of Squares Error.
+#     - SSB: Sum of Squares Between.
+#     - SST: Total Sum of Squares.
+#     - mean.mat: Mean matrix.
+#     - mumatA: Matrix of group mean differences.
+#     - residmat: Residual matrix.
 Manova.multiway <- function(dat0, idcol, rid=0){
     if(abs(rid[1])>.2){
       mat0 <- convert.data(dat0, c(idcol, rid))
@@ -120,6 +166,24 @@ Manova.multiway <- function(dat0, idcol, rid=0){
     list(lambda=mdet(SSE)/(mdet(SSE+SSB)), SSE=dum1$SSW, SSB=dum1$SSB, SST=dum1$SST, mean.mat=mean.mat, mumatA=dum1$mumatA, residmat=residmat)
 }
 
+# Computes multi-way MANOVA results with interaction terms and their statistics.
+# 
+# Input:
+#   - dat0: Input data matrix.
+#   - idcol: Column indices of the group identifiers.
+#   - int.str: List of lists specifying interaction terms.
+# 
+# Output:
+#   - A list containing the multi-way MANOVA results and their statistics.
+#     - Lambda: Vector of lambda statistics for each interaction term, including the overall lambda.
+#     - cLambda: Vector of cLambda statistics for each interaction term, including the overall cLambda.
+#     - outinf: List of multi-way MANOVA results for each interaction term, including SSE, SSB, SST, mean, and residuals.
+#     - SSE: List of SSE (Sum of Squares Error) for each interaction term.
+#     - SSB: List of SSB (Sum of Squares Between) for each interaction term.
+#     - SST: List of SST (Total Sum of Squares) for each interaction term.
+#     - mu: List of mean matrices for each interaction term.
+#     - muAlist: List of matrices containing group mean differences for each interaction term.
+#     - resid: List of matrices containing residuals for each interaction term.
 Manova.multiway.portmanteau <- function(dat0, idcol, int.str) {
     n1 <- length(int.str)
     out.str <- rep(list(), (n1 + 1))
@@ -175,6 +239,24 @@ Manova.multiway.portmanteau <- function(dat0, idcol, int.str) {
     return(out)
 }
 
+# Performs permutation tests on one-way MANOVA
+# 
+# Input:
+#   - mat: Input data matrix.
+#   - idcol: Column indices of the group identifiers.
+#   - nperm: Number of permutations for the permutation test (default is 10000).
+# 
+# Output:
+#   - A list containing the results of the permutation test.
+#     - Lambda: Vector of lambda statistics computed for each permutation, including the observed value.
+#     - cLambda: Vector of cLambda statistics computed for each permutation, including the observed value.
+#     - outinf: List of multi-way MANOVA results for each permutation, including SSE, SSB, SST, mean, and residuals.
+#     - SSE: List of SSE (Sum of Squares Error) for each permutation.
+#     - SSB: List of SSB (Sum of Squares Between) for each permutation.
+#     - SST: List of SST (Total Sum of Squares) for each permutation.
+#     - mu: List of mean matrices for each permutation.
+#     - muAlist: List of matrices containing group mean differences for each permutation.
+#     - resid: List of matrices containing residuals for each permutation.
 Manova.multiway.perm <- function(mat, idcol, nperm = 10000) {
     # function(dat0, idcol, int.str)
     # NOTE IDCOL SHOULD BE IN ORDER THEY APPEAR IN MATRIX
@@ -218,7 +300,24 @@ Manova.multiway.perm <- function(mat, idcol, nperm = 10000) {
     dum
 }
 
-#Perform a full MANOVA with minimal dependencies with other functions.
+#Performs a multi-way MANOVA with interaction terms.
+# 
+# Input:
+#   - dat0: Input data matrix.
+#   - idcol: Column indices of the group identifiers.
+#   - int.str: List of lists specifying interaction terms.
+# 
+# Output:
+#   - A list containing the results of the multi-way MANOVA.
+#     - Lambda: Vector of lambda statistics for each interaction term, including the overall lambda.
+#     - cLambda: Vector of cLambda statistics for each interaction term, including the overall cLambda.
+#     - outinf: List of multi-way MANOVA results for each interaction term, including SSE, SSB, SST, mean, and residuals.
+#     - SSE: List of SSE (Sum of Squares Error) for each interaction term.
+#     - SSB: List of SSB (Sum of Squares Between) for each interaction term.
+#     - SST: List of SST (Total Sum of Squares) for each interaction term.
+#     - mu: List of mean matrices for each interaction term.
+#     - muAlist: List of matrices containing group mean differences for each interaction term.
+#     - resid: List of matrices containing residuals for each interaction term.
 Manova <- function(dat0, idcol, int.str) {
     n1 <- length(int.str)
     out.str <- rep(list(), (n1 + 1))
@@ -315,7 +414,27 @@ Manova <- function(dat0, idcol, int.str) {
     out
 }
 
-#Perform permutation tests with the function Manova.
+#Performs permutation tests on multi-way MANOVA results.
+# 
+# Input:
+#   - mat: Input data matrix.
+#   - idcol: Column indices of the group identifiers.
+#   - int.str: List of lists specifying interaction terms.
+#   - nperm: Number of permutations for the permutation test (default is 10000).
+# 
+# Output:
+#   - A list containing the results of the permutation test.
+#     - Lambda: Vector of lambda statistics computed for each permutation, including the observed value.
+#     - cLambda: Vector of cLambda statistics computed for each permutation, including the observed value.
+#     - outinf: List of multi-way MANOVA results for each permutation, including SSE, SSB, SST, mean, and residuals.
+#     - SSE: List of SSE (Sum of Squares Error) for each permutation.
+#     - SSB: List of SSB (Sum of Squares Between) for each permutation.
+#     - SST: List of SST (Total Sum of Squares) for each permutation.
+#     - mu: List of mean matrices for each permutation.
+#     - muAlist: List of matrices containing group mean differences for each permutation.
+#     - resid: List of matrices containing residuals for each permutation.
+#     - p: Vector of p-values for lambda statistics.
+#     - cp: Vector of p-values for cLambda statistics.
 Manova.perm <- function(mat, idcol, int.str, nperm = 10000) {
     # function(dat0, idcol, int.str)
     # NOTE IDCOL SHOULD BE IN ORDER THEY APPEAR IN MATRIX
