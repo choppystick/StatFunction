@@ -239,7 +239,7 @@ Manova.multiway.portmanteau <- function(dat0, idcol, int.str) {
     return(out)
 }
 
-# Performs permutation tests on one-way MANOVA
+# Performs permutation tests on one-way MANOVA.
 # 
 # Input:
 #   - mat: Input data matrix.
@@ -300,8 +300,8 @@ Manova.multiway.perm <- function(mat, idcol, nperm = 10000) {
     dum
 }
 
-#Performs a multi-way MANOVA with interaction terms.
-# 
+# Performs a multi-way MANOVA with interaction terms.
+# Iteratively computes the lambda and cLambda statistics for each interaction term and provides a comprehensive summary of the analysis.
 # Input:
 #   - dat0: Input data matrix.
 #   - idcol: Column indices of the group identifiers.
@@ -414,7 +414,8 @@ Manova <- function(dat0, idcol, int.str) {
     out
 }
 
-#Performs permutation tests on multi-way MANOVA results.
+# Performs permutation tests on multi-way MANOVA results obtained from the Manova function. 
+# Permutes the data and computes lambda and cLambda statistics for each permutation, comparing them to the observed values.
 # 
 # Input:
 #   - mat: Input data matrix.
