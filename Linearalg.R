@@ -20,53 +20,47 @@ orthogonalize <- function(mat){
   return(m0)
 }
 
-# Function to create a generalized inverse matrix for a matrix input
-# Inputs:
-#   - mat: Input matrix
-#   - thresh: Threshold indicating zero. Default is 1e-10.
+# Function to compute the generalized inverse of a matrix.
+
+# Input:
+#   - mat: Input matrix.
+#   - thresh: Threshold for eigenvalues below which they are considered zero.
+
 # Output:
-#   - Generalized inverse matrix
-gen.inv <- function(mat, thresh = 1e-10){
-  v1 <- sum(is.na(mat))
-  v2 <- sum(is.inf(mat))
-
-  if((v1 + v2) > 0.5) {
-    print(mat)
-  }
-
-  e1 <- eigen(mat, symmetric = T)
-  val <- Re(e1$val)
-  vec <- Re(e1$vec)
-  val1 <- val/max(val)
-  #
-  #	print("normalized eigen values")
-  #	print(val1)	#
-  #	n1 <- length(val1)
-  #	plot(c(1:n1), abs(val1), log = "y", xlab = "eigen rank", ylab
-  #		 = "log10 of value")
-
-  I1 <- val1 > thresh
-  I3 <- is.na(I1)
-
-  if(sum(I3) < 0.5) {
-    val2 <- val[I1]
-    I2 <- I1
-
-    if(sum(I2) > 1.5) {
-      ret <- vec[, I1] %*% diag(1/val2) %*% t(vec[, I1])
+#   - ret: Generalized inverse of the input matrix.
+gen.inv <- function(mat, thresh = 1e-10) {
+    v1 <- sum(is.na(mat))  # Count NaN values in the matrix
+    v2 <- sum(is.inf(mat))  # Count infinite values in the matrix
+    
+    # Check if the matrix contains NaN or infinite values
+    if ((v1 + v2) > 0.5) {
+        print(mat)
     }
-
-    else {
-      v1 <- as.matrix(vec[, I1], length(c(vec[, I1])), 1)
-      ret <- (1/val2) * v1 %*% t(v1)
+    
+    # Compute eigenvalues and eigenvectors of the input matrix
+    e1 <- eigen(mat, symmetric = TRUE)
+    val <- Re(e1$val)  # Real part of eigenvalues
+    vec <- Re(e1$vec)  # Real part of eigenvectors
+    val1 <- val / max(val)  # Normalize eigenvalues
+    
+    # Threshold eigenvalues
+    I1 <- val1 > thresh
+    I3 <- is.na(I1)
+    
+    # Compute the generalized inverse
+    if (sum(I3) < 0.5) {
+        val2 <- val[I1]
+        I2 <- I1
+        if (sum(I2) > 1.5) {
+            ret <- vec[, I1] %*% diag(1 / sqrt(val2)) %*% t(vec[, I1])
+        } else {
+            v1 <- as.matrix(vec[, I1], length(c(vec[, I1])), 1)
+            ret <- (1 / val2) * v1 %*% t(v1)
+        }
+    } else {
+        ret <- diag(length(I1)) * 0
     }
-  }
-
-  else {
-    ret <- diag(length(I1)) * 0
-  }
-
-  return(ret)
+    return(ret)
 }
 
 # Function to calculate the determinant of a matrix using matrix decomposition
