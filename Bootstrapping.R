@@ -1,4 +1,11 @@
-#used with lars
+# Function to perform lars with cross-validation and obtain predictions and residuals
+# Inputs:
+#   - str: lars object obtained from the lars package.
+#   - matrix.train: Training matrix with predictors.
+#   - matrix.test: Test matrix with predictors.
+#   - y.train: Response vector for training.
+# Output:
+#   - A list containing predicted values, residuals, and beta coefficients.
 lars.cp <- function(str, matrix.train, matrix.test, y.train){
   I1 <- (str$Cp==min(str$Cp))
   s1 <- c(1:length(I1))[I1]
@@ -16,7 +23,14 @@ lars.cp <- function(str, matrix.train, matrix.test, y.train){
   list(ypredict0=yp1, resid=resp, beta=str$beta[I1,])
 }
 
-#used with leaps
+# Function to perform leaps with cross-validation and obtain predictions and residuals
+# Inputs:
+#   - str: leaps object obtained from the leaps package.
+#   - matrix.train: Training matrix with predictors.
+#   - matrix.test: Test matrix with predictors.
+#   - y.train: Response vector for training.
+# Output:
+#   - A list containing predicted values, residuals, and beta coefficients.
 leaps.cp <- function(str, matrix.train, matrix.test,y.train){
   I1 <- (str$Cp==min(str$Cp))
   which1 <- str$which[I1,]
@@ -39,7 +53,14 @@ leaps.cp <- function(str, matrix.train, matrix.test,y.train){
   list(ypredict0=yp1, resid=resp, beta=coef1)
 }
 
-#bootstrap using either leaps or lars
+# Function to perform bootstrapping using either leaps or lars
+# Inputs:
+#   - mat.train: Training matrix with predictors.
+#   - y: Response vector for training.
+#   - xstring: String indicating which method to use ('leaps' or 'lars').
+#   - brep: Number of bootstrap replicates.
+# Output:
+#   - A list containing bagged beta coefficients, original beta coefficients, and the bootstrap matrix.
 bootstrap.ch <- function(mat.train, y, xstring="leaps", brep=10){
   if(xstring=="lars"){
     library(lars)
@@ -88,10 +109,18 @@ bootstrap.ch <- function(mat.train, y, xstring="leaps", brep=10){
   list(bagged.beta=bagged.beta, orig.beta=beta00, mat=betamat)
 }
 
-#fits the linear regression model using the lars or leaps algorithm on the training data and then extracts the optimal model thenperforms a bootstrap analysis 
-#by resampling with replacement from the training data, fitting the linear regression model on the resampled data, and computing the predicted values and residuals.
-#then computes the bagged predictions by taking the median of the predicted values across all bootstrap samples, and also computes the bagged regression coefficients by 
-#taking the median of the regression coefficients across all bootstrap samples. Finally, the function computes either the prediction interval or confidence interval 
+# Function to perform bootstrapping with prediction intervals
+# Inputs:
+#   - mat.train: Training matrix with predictors.
+#   - mat.test: Test matrix with predictors.
+#   - y.train: Response vector for training.
+#   - y.test: Response vector for testing.
+#   - xstring: String indicating which method to use ('leaps' or 'lars').
+#   - brep: Number of bootstrap replicates.
+#   - pred.int: Logical indicating whether to calculate prediction intervals. Default is TRUE.
+#   - alpha: Significance level for prediction intervals. Default is 0.05.
+# Output:
+#   - A list containing bagged predictions, original predictions, type of method used, bagged beta coefficients, original beta coefficients, and prediction interval status.
 bootstrap.ch.conf <- function(mat.train,mat.test,y.train,y.test,xstring="lars",brep=10000,pred.int=T,alpha=.05){
   if(xstring=="lars"){
     library(lars)
@@ -168,7 +197,14 @@ bootstrap.ch.conf <- function(mat.train,mat.test,y.train,y.test,xstring="lars",b
   list(bpred=bagged.pred, ypred0=ypred0, type=xstring, bagged.beta=bagged.beta, orig.beta=beta0, pred.int=pred.int)
 }
 
-#slight difference from bootstrap.ch
+# Function to perform bootstrapping using leaps or lars for variable selection
+# Inputs:
+#   - mat.train: Training matrix with predictors.
+#   - y: Response vector for training.
+#   - xstring: String indicating which method to use ('leaps' or 'lars').
+#   - brep: Number of bootstrap replicates.
+# Output:
+#   - A list containing bagged beta coefficients, original beta coefficients, and the bootstrap matrix.
 bootstrap.ch.2 <- function(mat.train, y, xstring="leaps", brep=1000){
   if(xstring=="lars"){
     library(lars)
@@ -217,7 +253,13 @@ bootstrap.ch.2 <- function(mat.train, y, xstring="leaps", brep=1000){
   list(bagged.beta=bagged.beta, orig.beta=beta00, mat=betamat)
  }
   
-#performs bootstrap by using some function statfunc
+# Function to perform bootstrap and compute the bootstrap mean and variance
+# Inputs:
+#   - vec0: Input vector for bootstrapping.
+#   - statfunc: Function to compute the statistic of interest.
+#   - nboot: Number of bootstrap replicates.
+# Output:
+#   - A list containing the original statistic, bootstrap mean, and bootstrap variance.
 my.bootstrap.exp <- function(vec0,statfunc,nboot=100){
   n0 <- length(vec0)
   stat0 <- statfunc(vec0)
