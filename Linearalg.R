@@ -1,4 +1,8 @@
-#performs a Gram-Schmidt orthogonalization on on a matrix's rows to produce an orthonormal basis for its row space.
+# Function to orthogonalize, with Gram-Schmidt orthogonalization, the rows of a matrix
+# Inputs:
+#   - mat: Input matrix
+# Output:
+#   - Orthogonalized matrix
 orthogonalize <- function(mat){
   n1 <- length(mat[,1])
   v1 <- mat[1,]
@@ -16,7 +20,12 @@ orthogonalize <- function(mat){
   return(m0)
 }
 
-#create a generalized inverse matrix for a matrix input, given a certain threshold as indication for zero.
+# Function to create a generalized inverse matrix for a matrix input
+# Inputs:
+#   - mat: Input matrix
+#   - thresh: Threshold indicating zero. Default is 1e-10.
+# Output:
+#   - Generalized inverse matrix
 gen.inv <- function(mat, thresh = 1e-10){
   v1 <- sum(is.na(mat))
   v2 <- sum(is.inf(mat))
@@ -60,16 +69,23 @@ gen.inv <- function(mat, thresh = 1e-10){
   return(ret)
 }
 
-#calculates the determinant of the matrix using matrix decomposition. Takes the logarithm and exponentiating the result to compute the product of the eigenvalues in 
-#a numerically stable way.
+# Function to calculate the determinant of a matrix using matrix decomposition
+# Inputs:
+#   - mat: Input matrix
+# Output:
+#   - Determinant of the matrix
 mdet <- function(mat){
   z1 <- eigen(mat)$val
   I1 <- z1>1e-12
   return(exp(sum(log(z1[I1]))))
 }
 
-#takes a matrix x as input and creates a new matrix x0 that includes all the second-order interaction terms (i.e., products of pairs of variables) of the columns of x.
-#only.squared: function only create squared interaction terms if True 
+# Function to include all the second-order interaction terms of the columns of a matrix
+# Inputs:
+#   - x: Input matrix
+#   - only.squared: Logical indicating whether to create only squared interaction terms. Default is FALSE.
+# Output:
+#   - Matrix including all the second-order interaction terms
 matrix.2nd.order <- function(x, only.squared=F){
   x0 <- x
   dimn <- dimnames(x)[[2]] 
